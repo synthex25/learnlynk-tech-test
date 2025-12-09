@@ -19,18 +19,21 @@ export default function TodayDashboard() {
     setError(null);
 
     try {
-      // TODO:
-      // - Query tasks that are due today and not completed
-      // - Use supabase.from("tasks").select(...)
-      // - You can do date filtering in SQL or client-side
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
 
-      // Example:
-      // const { data, error } = await supabase
-      //   .from("tasks")
-      //   .select("*")
-      //   .eq("status", "open");
-
-      setTasks([]);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .gte("due_at", todayStart.toISOString())
+        .lte("due_at", todayEnd.toISOString())
+        .neq("status", "completed")
+        .order("due_at", { ascending: true });
+      if (error) 
+        throw error;
+      setTasks(data || []);
     } catch (err: any) {
       console.error(err);
       setError("Failed to load tasks");
@@ -41,13 +44,20 @@ export default function TodayDashboard() {
 
   async function markComplete(id: string) {
     try {
-      // TODO:
-      // - Update task.status to 'completed'
-      // - Re-fetch tasks or update state optimistically
+           const { error } = await supabase
+        .from("tasks")
+        .update({ status: "completed", updated_at: new Date().toISOString() })
+        .eq("id", id);
+
+      if (error) 
+        throw error;
+
+      setTasks((prev) => prev.filter((t) => t.id !== id));
     } catch (err: any) {
       console.error(err);
       alert("Failed to update task");
     }
+  
   }
 
   useEffect(() => {
